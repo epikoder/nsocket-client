@@ -4,16 +4,21 @@ import { v4 as uuidv4 } from "uuid";
 export type ClientConfig = {
   reconnect?: number;
   maxRetries?: number;
+  onConnectFunc: VoidFunction
+  onDisconnectFunc: VoidFunction
 };
 export type NsocketMessage = {
   id: string;
-  type: string;
+  type: MessageType;
   body?: Message;
   action?: string;
   namespace?: string;
 }
 export type Message = { [key: string]: any };
 
+type MessageType = 'nsocket' | 'emit'
+const _NSOCKET_: MessageType = 'nsocket'
+const _EMIT_: MessageType = 'emit'
 class NSocketClient {
   public connected: boolean = false;
   private _url: string;
@@ -32,11 +37,11 @@ class NSocketClient {
     }
     this._url = url;
     this._config = config;
+    this._onConnectFunc = config?.onConnectFunc || (() => null)
+    this._onDisconnectFunc = config?.onDisconnectFunc || (() => null)
   }
 
-  connect(callback?: VoidFunction, closeCallback?: VoidFunction) {
-    this._onConnectFunc = callback || (() => null);
-    this._onDisconnectFunc = closeCallback || (() => null);
+  connect() {
     if (this._client !== undefined) {
       this._client.onclose = null;
     }
@@ -47,7 +52,7 @@ class NSocketClient {
     this._client.onopen = () => {
       this.connected = true;
       this._retries = 0;
-      if (this._onConnectFunc !== undefined) this._onConnectFunc();
+      this._onConnectFunc!();
     };
   }
 
@@ -60,20 +65,20 @@ class NSocketClient {
       return;
     }
     setTimeout(() => {
-      this.connect(this._onConnectFunc);
+      this.connect();
     }, this._config?.reconnect || 3000);
   }
 
   on(namespace: string, fun: (message: Message) => void) {
-    const nsMessage: NsocketMessage = {
-      id: uuidv4(),
-      action: "subscribe",
-      type: "nsocket",
-      namespace,
-    };
     if (!this.connected) {
       return;
     }
+    const nsMessage: NsocketMessage = {
+      id: uuidv4(),
+      action: "subscribe",
+      type: _NSOCKET_,
+      namespace,
+    };
     this._client?.send(JSON.stringify(nsMessage));
 
     const f = (ev: MessageEvent) => {
@@ -87,16 +92,16 @@ class NSocketClient {
   }
 
   off(namespace: string, callback?: () => void) {
+    if (!this.connected) {
+      return;
+    }
     callback = callback || (() => null);
     const nsMessage: NsocketMessage = {
       id: uuidv4(),
       action: "unsubscribe",
-      type: "nsocket",
+      type: _NSOCKET_,
       namespace,
     };
-    if (!this.connected) {
-      return;
-    }
     this._client?.send(JSON.stringify(nsMessage));
     const f = this._namespace.get(namespace);
     if (f !== undefined) {
@@ -106,17 +111,20 @@ class NSocketClient {
     callback();
   }
 
-  read(fun: (message: Message) => void) {
+  read(fun: (message: Message) => void, type?: string) {
     this._client?.addEventListener("message", function (this, ev) {
       const m = JSON.parse(ev.data as string) as NsocketMessage;
-      return fun(m);
+      if (m.type !== _EMIT_ || m.type !== _NSOCKET_ && m.type as string === type) {
+        return fun(m)
+      }
+      fun(m.body || {})
     });
   }
 
   emit(m: any, namespace?: string) {
     const nsMessage: NsocketMessage = {
       id: uuidv4(),
-      type: "emit",
+      type: _EMIT_,
       namespace,
       body: m,
     };

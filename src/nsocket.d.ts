@@ -11,7 +11,7 @@ declare class NSocketClient {
   private _namespace: Map<string, (ev: MessageEvent) => void>;
   connect(callback?: VoidFunction, closeCallback?: VoidFunction): void;
   reconnect(): void;
-  read(fun: (message: Message) => void): void;
+  read(fun: (message: Message) => void, type?: string): void;
   on(namespace: string, fun: (message: Message) => void): void;
   off(namespace: string, callback?: () => void): void;
   emit(m: any, namespace?: string): void;
