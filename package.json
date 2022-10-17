@@ -1,6 +1,6 @@
 {
   "name": "@epikoder/nsocket-client",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Event driven websocket client with namespace/group subscribe and unsubscribe",
   "main": "lib/nsocket.js",
   "typings": "lib/nsocket.d.ts",

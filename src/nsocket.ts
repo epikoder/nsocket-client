@@ -1,11 +1,18 @@
 "use strict";
-
-import {
-  ClientConfig,
-  Message,
-  NsocketMessage,
-} from "./nsocket.d";
 import { v4 as uuidv4 } from "uuid";
+
+export type ClientConfig = {
+  reconnect?: number;
+  maxRetries?: number;
+};
+export type NsocketMessage = {
+  id: string;
+  type: string;
+  body?: Message;
+  action?: string;
+  namespace?: string;
+}
+export type Message = { [key: string]: any };
 
 class NSocketClient {
   public connected: boolean = false;
@@ -79,7 +86,7 @@ class NSocketClient {
     this._client?.addEventListener("message", f);
   }
 
-  of(namespace: string, callback?: () => void) {
+  off(namespace: string, callback?: () => void) {
     callback = callback || (() => null);
     const nsMessage: NsocketMessage = {
       id: uuidv4(),

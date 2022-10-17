@@ -1,3 +1,4 @@
+export { }
 declare class NSocketClient {
   constructor(url?: string, config?: ClientConfig);
   public connected: boolean;
@@ -12,21 +13,12 @@ declare class NSocketClient {
   reconnect(): void;
   read(fun: (message: Message) => void): void;
   on(namespace: string, fun: (message: Message) => void): void;
-  of(namespace: string, callback?: () => void): void;
+  off(namespace: string, callback?: () => void): void;
   emit(m: any, namespace?: string): void;
   isSubscribed(namespace: string): boolean;
 }
-
-export type ClientConfig = {
+declare interface ClientConfig {
   reconnect?: number;
   maxRetries?: number;
-};
-export interface NsocketMessage {
-  id: string;
-  type: string;
-  body?: Message;
-  action?: string;
-  namespace?: string;
 }
-export type IMap<T = any> = { [key: string]: T };
-export type Message = IMap<any>;
+declare interface Message { [key: string]: any }
